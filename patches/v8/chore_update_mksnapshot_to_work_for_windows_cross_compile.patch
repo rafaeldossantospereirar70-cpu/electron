@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Kleinschmidt <kleinschmidtorama@gmail.com>
+Date: Fri, 20 Mar 2026 16:19:44 -0400
+Subject: chore: update mksnapshot to work for windows cross compile
+
+This patch makes mksnapshot work properly for windows cross compile
+
+diff --git a/src/diagnostics/unwinding-info-win64.h b/src/diagnostics/unwinding-info-win64.h
+index bb32f49e5d8966bafc079d274ad9600f75f85759..eea6fc941f76da73566299acaa8f7a7606c02d36 100644
+--- a/src/diagnostics/unwinding-info-win64.h
++++ b/src/diagnostics/unwinding-info-win64.h
+@@ -11,8 +11,11 @@
+ #include "include/v8config.h"
+ #include "src/common/globals.h"
+ 
++#if defined(V8_OS_WIN64) || \
++    (defined(V8_TARGET_OS_WIN) && defined(V8_TARGET_ARCH_X64))
+ #if defined(V8_OS_WIN64)
+ #include "src/base/win32-headers.h"
++#endif
+ 
+ namespace v8 {
+ namespace internal {
+@@ -61,7 +64,8 @@ void UnregisterNonABICompliantCodeRange(void* start);
+  */
+ static const uint32_t kDefaultRuntimeFunctionCount = 1;
+ 
+-#if defined(V8_OS_WIN_X64)
++#if defined(V8_OS_WIN_X64) || \
++    (defined(V8_TARGET_OS_WIN) && defined(V8_TARGET_ARCH_X64))
+ 
+ static const int kPushRbpInstructionLength = 1;
+ static const int kMovRbpRspInstructionLength = 3;
+@@ -182,6 +186,6 @@ class XdataEncoder {
+ }  // namespace internal
+ }  // namespace v8
+ 
+-#endif  // V8_OS_WIN64
++#endif  // V8_OS_WIN64 || (V8_TARGET_OS_WIN && V8_TARGET_ARCH_X64)
+ 
+ #endif  // V8_DIAGNOSTICS_UNWINDING_INFO_WIN64_H_
+diff --git a/src/snapshot/embedded/platform-embedded-file-writer-win.cc b/src/snapshot/embedded/platform-embedded-file-writer-win.cc
+index bf76435717cf63f6f7be288c9b7e963c14b29425..e87ab8b6ddf832f0838337a667788e5590e08850 100644
+--- a/src/snapshot/embedded/platform-embedded-file-writer-win.cc
++++ b/src/snapshot/embedded/platform-embedded-file-writer-win.cc
+@@ -8,7 +8,8 @@
+ 
+ #include "src/common/globals.h"  // For V8_OS_WIN64
+ 
+-#if defined(V8_OS_WIN64)
++#if defined(V8_OS_WIN64) || \
++    (defined(V8_TARGET_OS_WIN) && defined(V8_TARGET_ARCH_X64))
+ #include "src/builtins/builtins.h"
+ #include "src/diagnostics/unwinding-info-win64.h"
+ #include "src/snapshot/embedded/embedded-data-inl.h"
+@@ -59,7 +60,8 @@ namespace internal {
+ 
+ namespace {
+ 
+-#if defined(V8_OS_WIN_X64)
++#if defined(V8_OS_WIN_X64) || \
++    (defined(V8_TARGET_OS_WIN) && defined(V8_TARGET_ARCH_X64))
+ 
+ void WriteUnwindInfoEntry(PlatformEmbeddedFileWriterWin* w,
+                           const char* unwind_info_symbol,
+@@ -324,7 +326,8 @@ void PlatformEmbeddedFileWriterWin::MaybeEmitUnwindData(
+   }
+ #endif  // V8_OS_WIN_ARM64
+ 
+-#if defined(V8_OS_WIN64)
++#if defined(V8_OS_WIN64) || \
++    (defined(V8_TARGET_OS_WIN) && defined(V8_TARGET_ARCH_X64))
+   if (win64_unwindinfo::CanEmitUnwindInfoForBuiltins()) {
+     EmitUnwindData(this, unwind_info_symbol, embedded_blob_data_symbol, blob,
+                    reinterpret_cast<const win64_unwindinfo::BuiltinUnwindInfo*>(
